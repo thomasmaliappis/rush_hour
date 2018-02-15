@@ -28,7 +28,7 @@ columns (y:ys) = length y
 
 -- writeState
 writeState :: State -> String
-writeState (State [x] r c) = x
+writeState (State [x] r c) = x++['\n']
 writeState (State (x:xs) r c) = x++['\n']++(writeState (State xs r c))
 
 -- successorMoves
@@ -43,14 +43,14 @@ successorLoop (State matrix r c) x y =
                 then []
         else if (element (State matrix r c) x y) == '.'
                 then successorLoop (State matrix r c) x (y+1)
-        else if car_horizontal (State matrix r c) x y
-                then (car_horizontal_moves (State matrix r c) x y)++successorLoop (State matrix r c) x (y+1)
-        else if car_vertical (State matrix r c) x y
-                then (car_vertical_moves (State matrix r c) x y)++successorLoop (State matrix r c) x (y+1)
         else if truck_horizontal (State matrix r c) x y
                 then (truck_horizontal_moves (State matrix r c) x y)++successorLoop (State matrix r c) x (y+1)
         else if truck_vertical (State matrix r c) x y
                 then (truck_vertical_moves (State matrix r c) x y)++successorLoop (State matrix r c) x (y+1)
+        else if car_horizontal (State matrix r c) x y
+                then (car_horizontal_moves (State matrix r c) x y)++successorLoop (State matrix r c) x (y+1)
+        else if car_vertical (State matrix r c) x y
+                then (car_vertical_moves (State matrix r c) x y)++successorLoop (State matrix r c) x (y+1)
         else successorLoop (State matrix r c) x (y+1)
 
 -- element
@@ -138,13 +138,13 @@ changeColumn (z:zs) x y char = if y == 0
 
 
 vehicle (State matrix r c) (Move d car n) (cx,cy) =
-        if car_horizontal (State matrix r c) cx cy
-                then changeBefore (State matrix r c) (Move d car n) (cx,cy) 0 2
-        else if car_vertical (State matrix r c) cx cy
-                then changeBefore (State matrix r c) (Move d car n) (cx,cy) 1 2
-        else if truck_horizontal (State matrix r c) cx cy
+        if truck_horizontal (State matrix r c) cx cy
                 then changeBefore (State matrix r c) (Move d car n) (cx,cy) 2 3
-        else changeBefore (State matrix r c) (Move d car n) (cx,cy) 3 3
+        else if truck_vertical (State matrix r c) cx cy
+                then changeBefore (State matrix r c) (Move d car n) (cx,cy) 3 3
+        else if car_horizontal (State matrix r c) cx cy
+                then changeBefore (State matrix r c) (Move d car n) (cx,cy) 0 2
+        else changeBefore (State matrix r c) (Move d car n) (cx,cy) 1 2
 
 
 changeBefore (State matrix r c) (Move d car n) (cx,cy) vehicle counter =
@@ -199,7 +199,7 @@ check (State matrix r c) x y =
         else check (State matrix r c) x (y+1)
 
 solve :: State -> [Move]
-solve currentState = solveHelper currentState [] (successorMoves currentState) 0
+solve currentState = solveHelper currentState [currentState] (successorMoves currentState) 0
 
 member [] _ = False
 member (x:xs) y = if x == y
@@ -213,5 +213,8 @@ solveHelper currentState explored moves n =
                 then solveHelper currentState explored moves (n+1)
                 else move:(solveHelper newstate (explored++[newstate]) (successorMoves newstate) 0)
         where
-                (move,cost) = moves !! n
+                (move,cost) = moves !! (n `mod` ((length moves)-1))
                 newstate = makeMove currentState move
+
+printSolution s [] = putStrLn (writeState s)
+printSolution s (m:ms) = do {putStrLn (writeState s); printSolution (makeMove s m) ms}
