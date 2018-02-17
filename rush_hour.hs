@@ -5,8 +5,13 @@ instance Eq State where
         (State string1 rows1 columns1) == (State string2 rows2 columns2) = string1 == string2 && rows1 == rows2 && columns1 == columns2
 
 -- data type Move
-data Move = Move Char Char Int deriving (Show)
-
+data Move = None | Move Char Char Int deriving (Show)
+instance Eq Move where
+        None == None = True
+        (Move d1 c1 s1) == (Move d2 c2 s2) = d1 == d2 && c1 == c2 && s1 == s2
+        _ == _ = False
+-- data type Triplet
+data Triplet = Empty | Triplet State Triplet Move deriving (Show)
 -- readState
 readState :: String -> State
 readState xs = State y (rows y) (columns y)
@@ -114,6 +119,7 @@ truck_moves_down (State matrix r c) x y z n = if (x+3 < r) && (element (State ma
         else []
 
 makeMove:: State -> Move -> State
+makeMove (State matrix r c) None = (State matrix r c)
 makeMove (State matrix r c) (Move d car n) = vehicle (State matrix r c) (Move d car n) (position (State matrix r c) (Move d car n) 0 0)
 
 -- position
@@ -199,22 +205,42 @@ check (State matrix r c) x y =
         else check (State matrix r c) x (y+1)
 
 solve :: State -> [Move]
-solve currentState = solveHelper currentState [currentState] (successorMoves currentState) 0
+solve startState = if finalState startState
+        then []
+        else solveHelper (Triplet startState Empty None) [] [(Triplet startState Empty None)] (length (successorMoves startState))
+
 
 member [] _ = False
-member (x:xs) y = if x == y
+member ((Triplet x y z):xs) (w,v) = if (x == w) && (z == v)
         then True
-        else member xs y
+        else member xs (w,v)
 
-solveHelper currentState explored moves n =
-        if finalState currentState
-                then []
-        else if member explored newstate
-                then solveHelper currentState explored moves (n+1)
-                else move:(solveHelper newstate (explored++[newstate]) (successorMoves newstate) 0)
+member2 [] _ = False
+member2 ((Triplet x y z):xs) w = if x == w
+        then True
+        else member2 xs w
+
+untuple (Triplet x Empty None) = []
+untuple (Triplet x y z) = z:untuple y
+
+
+solveHelper :: Triplet -> [Triplet] -> [Triplet] -> Int -> [Move]
+solveHelper node frontier explored 0 =
+        solveHelper (head frontier) (tail frontier) (explored++[node]) (length (successorMoves x))
         where
-                (move,cost) = moves !! (n `mod` ((length moves)-1))
-                newstate = makeMove currentState move
+                Triplet x y z = head frontier
+
+solveHelper node frontier explored n =
+        if finalState newstate
+                then reverse (untuple (Triplet newstate node move))
+        else if (member explored (newstate,move)) && (member frontier (newstate,move))
+        -- else if (member2 explored newstate) && (member2 frontier newstate)
+                then solveHelper node frontier explored (n-1)
+        else solveHelper node (frontier++[Triplet newstate node move]) explored (n-1)
+        where
+                Triplet successor parent action = node
+                (move,cost) = (successorMoves successor) !! (n-1)
+                newstate = makeMove successor move
 
 printSolution s [] = putStrLn (writeState s)
 printSolution s (m:ms) = do {putStrLn (writeState s); printSolution (makeMove s m) ms}
