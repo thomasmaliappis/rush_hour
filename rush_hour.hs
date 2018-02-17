@@ -1,4 +1,3 @@
--- "..abbb\nc.adee\nc==d..\n.g.dhh\nigjj.k\nilll.k"
 -- data type State
 data State = State [String] Int Int deriving (Show)
 instance Eq State where
@@ -12,6 +11,10 @@ instance Eq Move where
         _ == _ = False
 -- data type Triplet
 data Triplet = Empty | Triplet State Triplet Move deriving (Show)
+instance Eq Triplet where
+        Empty == Empty = True
+        (Triplet state1 parent1 action1) == (Triplet state2 parent2 action2) = state1 == state2
+        _ == _ = False
 -- readState
 readState :: String -> State
 readState xs = State y (rows y) (columns y)
@@ -223,7 +226,6 @@ member2 ((Triplet x y z):xs) w = if x == w
 untuple (Triplet x Empty None) = []
 untuple (Triplet x y z) = z:untuple y
 
-
 solveHelper :: Triplet -> [Triplet] -> [Triplet] -> Int -> [Move]
 solveHelper node frontier explored 0 =
         solveHelper (head frontier) (tail frontier) (explored++[node]) (length (successorMoves x))
@@ -234,6 +236,7 @@ solveHelper node frontier explored n =
         if finalState newstate
                 then reverse (untuple (Triplet newstate node move))
         else if (member explored (newstate,move)) && (member frontier (newstate,move))
+        -- else if (member2 explored newstate) && (member2 frontier newstate)
                 then solveHelper node frontier explored (n-1)
         else solveHelper node (frontier++[Triplet newstate node move]) explored (n-1)
         where
