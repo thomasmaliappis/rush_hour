@@ -234,7 +234,6 @@ solveHelper node frontier explored n =
         if finalState newstate
                 then reverse (untuple (Triplet newstate node move))
         else if (member explored (newstate,move)) && (member frontier (newstate,move))
-        -- else if (member2 explored newstate) && (member2 frontier newstate)
                 then solveHelper node frontier explored (n-1)
         else solveHelper node (frontier++[Triplet newstate node move]) explored (n-1)
         where
