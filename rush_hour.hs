@@ -1,3 +1,5 @@
+-- just a comment
+
 -- data type State
 data State = State [String] Int Int deriving (Show)
 instance Eq State where
